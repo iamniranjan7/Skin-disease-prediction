@@ -42,3 +42,5 @@ logs/
 .coverage
 htmlcov/
 models/*.pkl
+notebooks/Skin_Disease_Prediction.ipynb
+assets/*.pptx
