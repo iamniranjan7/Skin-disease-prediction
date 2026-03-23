@@ -41,3 +41,4 @@ logs/
 # Coverage
 .coverage
 htmlcov/
+models/*.pkl
