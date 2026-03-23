@@ -9,7 +9,8 @@ Run:
 Deploy free:
     https://share.streamlit.io → connect your GitHub repo
 """
-
+from setup_model import ensure_model_exists
+ensure_model_exists()
 import os
 import joblib
 import numpy as np

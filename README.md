@@ -76,6 +76,9 @@ skin-disease-prediction/
 
 ## 🚀 Quick Start
 
+> **Note:** Model files (`.pkl`) are not stored in this repo.  
+> Run `python train_model.py` once after cloning to generate them.
+
 ### 1. Clone & Install
 
 ```bash
