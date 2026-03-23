@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+*.egg-info/
+dist/
+build/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# Environment
+.env
+.env.local
+*.env
+
+# OS
+.DS_Store
+Thumbs.db
+*.swp
+
+# IDE
+.vscode/
+.idea/
+*.sublime-project
+
+# Large files (model binaries tracked via Git LFS or excluded)
+# Uncomment below if models are too large:
+# models/*.pkl
+
+# Logs
+*.log
+logs/
+
+# Coverage
+.coverage
+htmlcov/

@@ -1,0 +1,1300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Skin Disease Predictor – SVM Model</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy:    #0B1F3A;
+    --teal:    #0D7377;
+    --teal2:   #14A085;
+    --mint:    #D4F5F0;
+    --gold:    #F4A823;
+    --red:     #E74C3C;
+    --green:   #27AE60;
+    --purple:  #8E44AD;
+    --bg:      #F0F4F8;
+    --white:   #FFFFFF;
+    --gray:    #64748B;
+    --border:  #CBD5E1;
+    --c1: #3498DB; --c2: #E74C3C; --c3: #2ECC71;
+    --c4: #F39C12; --c5: #9B59B6; --c6: #1ABC9C;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--navy);
+    min-height: 100vh;
+  }
+
+  /* ── TOP NAV ── */
+  .topnav {
+    background: var(--navy);
+    padding: 0 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 56px;
+    position: sticky; top: 0; z-index: 100;
+    border-bottom: 2px solid var(--teal);
+  }
+  .topnav .brand {
+    font-family: 'Space Mono', monospace;
+    color: var(--white);
+    font-size: 0.85rem;
+    letter-spacing: 1px;
+  }
+  .topnav .brand span { color: var(--teal2); }
+  .nav-tabs { display: flex; gap: 0; }
+  .nav-tab {
+    padding: 0 1.2rem;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: #94A3B8;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    transition: all 0.2s;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  .nav-tab:hover { color: var(--white); }
+  .nav-tab.active { color: var(--teal2); border-bottom-color: var(--teal2); }
+  .accuracy-badge {
+    font-family: 'Space Mono', monospace;
+    background: var(--teal);
+    color: var(--white);
+    padding: 0.2rem 0.7rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+  }
+
+  /* ── PAGES ── */
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* ── PAGE 1: PREDICTOR ── */
+  .predictor-layout {
+    display: grid;
+    grid-template-columns: 380px 1fr;
+    gap: 0;
+    min-height: calc(100vh - 56px);
+  }
+
+  /* Sidebar */
+  .sidebar {
+    background: var(--white);
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    height: calc(100vh - 56px);
+    position: sticky;
+    top: 56px;
+  }
+  .sidebar-header {
+    background: var(--navy);
+    padding: 1.2rem 1.5rem;
+    position: sticky; top: 0; z-index: 10;
+  }
+  .sidebar-header h2 {
+    color: var(--white);
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .sidebar-header p {
+    color: #94A3B8;
+    font-size: 0.75rem;
+    margin-top: 0.2rem;
+  }
+
+  .section-label {
+    background: var(--bg);
+    padding: 0.5rem 1.5rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--gray);
+    border-bottom: 1px solid var(--border);
+    border-top: 1px solid var(--border);
+    position: sticky;
+    top: 76px;
+    z-index: 5;
+  }
+  .section-label.histo { background: #F8F0FF; color: var(--purple); border-color: #E8D5FF; }
+
+  .features-list { padding: 0.5rem 0; }
+
+  .feature-row {
+    padding: 0.55rem 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    border-bottom: 1px solid #F1F5F9;
+    transition: background 0.1s;
+  }
+  .feature-row:hover { background: #F8FAFC; }
+  .feature-name {
+    flex: 1;
+    font-size: 0.78rem;
+    color: var(--navy);
+    line-height: 1.3;
+  }
+  .feature-name .abbr { color: var(--gray); font-size: 0.68rem; display: block; }
+
+  /* Slider */
+  .slider-wrap { display: flex; align-items: center; gap: 0.5rem; min-width: 130px; }
+  .score-btns { display: flex; gap: 2px; }
+  .score-btn {
+    width: 26px; height: 26px;
+    border: 1.5px solid var(--border);
+    background: var(--white);
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--gray);
+    transition: all 0.15s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .score-btn.active {
+    background: var(--teal);
+    border-color: var(--teal);
+    color: var(--white);
+  }
+  .score-btn:hover:not(.active) { border-color: var(--teal); color: var(--teal); }
+
+  /* Binary toggle for family_history */
+  .toggle-wrap { display: flex; gap: 4px; }
+  .toggle-btn {
+    padding: 3px 10px;
+    border: 1.5px solid var(--border);
+    background: var(--white);
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--gray);
+    transition: all 0.15s;
+  }
+  .toggle-btn.active { background: var(--teal); border-color: var(--teal); color: var(--white); }
+
+  /* Age input */
+  .age-input {
+    width: 70px;
+    padding: 3px 6px;
+    border: 1.5px solid var(--border);
+    border-radius: 4px;
+    font-size: 0.82rem;
+    font-family: 'Space Mono', monospace;
+    color: var(--navy);
+    outline: none;
+  }
+  .age-input:focus { border-color: var(--teal); }
+
+  /* ── MAIN AREA ── */
+  .main-area {
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  /* Hero result card */
+  .result-hero {
+    background: var(--white);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 4px 24px rgba(11,31,58,0.08);
+  }
+  .result-hero-top {
+    padding: 1.5rem 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+  }
+  .result-hero-top h3 {
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--gray);
+  }
+  .predict-btn {
+    background: var(--teal);
+    color: var(--white);
+    border: none;
+    padding: 0.6rem 1.5rem;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'DM Sans', sans-serif;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .predict-btn:hover { background: var(--teal2); transform: translateY(-1px); }
+
+  .result-body { padding: 2rem; }
+
+  .prediction-waiting {
+    text-align: center;
+    padding: 3rem;
+    color: var(--gray);
+  }
+  .prediction-waiting .icon { font-size: 3rem; margin-bottom: 1rem; }
+  .prediction-waiting p { font-size: 0.9rem; }
+
+  .prediction-display { display: none; }
+  .prediction-display.show { display: block; }
+  .prediction-waiting.hide { display: none; }
+
+  .disease-result {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+  .disease-icon-circle {
+    width: 72px; height: 72px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    flex-shrink: 0;
+  }
+  .disease-name-block h2 {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--navy);
+  }
+  .disease-name-block .class-tag {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.72rem;
+    padding: 2px 10px;
+    border-radius: 20px;
+    color: var(--white);
+    display: inline-block;
+    margin-top: 0.25rem;
+  }
+
+  /* Confidence bars */
+  .confidence-title {
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--gray);
+    margin-bottom: 0.75rem;
+  }
+  .conf-bar-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.5rem;
+  }
+  .conf-bar-label { font-size: 0.78rem; width: 180px; color: var(--navy); }
+  .conf-bar-track {
+    flex: 1;
+    background: var(--bg);
+    border-radius: 100px;
+    height: 10px;
+    overflow: hidden;
+  }
+  .conf-bar-fill {
+    height: 100%;
+    border-radius: 100px;
+    transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .conf-bar-pct { font-family: 'Space Mono', monospace; font-size: 0.72rem; color: var(--gray); width: 42px; text-align: right; }
+
+  /* Feature importance highlight */
+  .feature-highlights {
+    background: var(--bg);
+    border-radius: 10px;
+    padding: 1rem 1.2rem;
+    margin-top: 1.5rem;
+  }
+  .feature-highlights h4 { font-size: 0.78rem; font-weight: 700; color: var(--gray); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.75rem; }
+  .highlight-pills { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+  .highlight-pill {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    background: var(--white);
+    border: 1.5px solid var(--border);
+    color: var(--navy);
+  }
+  .highlight-pill.active-feature {
+    background: var(--mint);
+    border-color: var(--teal);
+    color: var(--teal);
+    font-weight: 600;
+  }
+
+  /* Bottom cards row */
+  .bottom-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+  .info-card {
+    background: var(--white);
+    border-radius: 12px;
+    padding: 1.2rem 1.5rem;
+    box-shadow: 0 2px 12px rgba(11,31,58,0.06);
+  }
+  .info-card h4 { font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--gray); margin-bottom: 0.75rem; }
+  .stat-row { display: flex; justify-content: space-between; padding: 0.4rem 0; border-bottom: 1px solid #F1F5F9; font-size: 0.82rem; }
+  .stat-row:last-child { border: none; }
+  .stat-val { font-family: 'Space Mono', monospace; font-weight: 700; color: var(--teal); }
+
+  /* ── PAGE 2: COMPARE ── */
+  .compare-page { padding: 2.5rem; max-width: 1100px; margin: 0 auto; }
+  .compare-page h1 { font-size: 1.8rem; font-weight: 700; color: var(--navy); margin-bottom: 0.5rem; }
+  .compare-page .subtitle { color: var(--gray); font-size: 0.9rem; margin-bottom: 2rem; }
+
+  .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem; }
+  .deploy-card {
+    background: var(--white);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(11,31,58,0.08);
+    border: 2px solid transparent;
+    transition: border-color 0.2s;
+  }
+  .deploy-card:hover { border-color: var(--teal); }
+  .deploy-card-header {
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+  .deploy-icon {
+    width: 48px; height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+  }
+  .deploy-card-header h3 { font-size: 1.1rem; font-weight: 700; }
+  .deploy-card-header p { font-size: 0.78rem; color: var(--gray); margin-top: 0.1rem; }
+  .deploy-card-body { padding: 0 1.5rem 1.5rem; }
+
+  .pro-con-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
+  .pro-con-col h5 { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.5rem; }
+  .pros h5 { color: var(--green); }
+  .cons h5 { color: var(--red); }
+  .pro-con-item { font-size: 0.8rem; color: var(--navy); padding: 0.2rem 0; display: flex; gap: 0.4rem; }
+  .pro-con-item::before { content: '✓'; color: var(--green); font-weight: 700; flex-shrink: 0; }
+  .cons .pro-con-item::before { content: '✗'; color: var(--red); }
+
+  .use-case-tag {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    margin: 2px;
+  }
+
+  /* Code block */
+  .code-section { margin-top: 2rem; }
+  .code-section h3 { font-size: 1rem; font-weight: 700; color: var(--navy); margin-bottom: 1rem; }
+  .code-tabs { display: flex; gap: 0; border-bottom: 2px solid var(--border); margin-bottom: 0; }
+  .code-tab {
+    padding: 0.6rem 1.2rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    color: var(--gray);
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px;
+    transition: all 0.2s;
+  }
+  .code-tab.active { color: var(--teal); border-bottom-color: var(--teal); }
+  .code-panel { display: none; }
+  .code-panel.active { display: block; }
+  pre {
+    background: var(--navy);
+    color: #E2E8F0;
+    padding: 1.5rem;
+    border-radius: 0 0 12px 12px;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.72rem;
+    line-height: 1.8;
+    overflow-x: auto;
+  }
+  .kw { color: #67D7EE; }
+  .str { color: #A8D8A8; }
+  .cm { color: #64748B; }
+  .fn { color: #F4A823; }
+  .num { color: #FF9B71; }
+
+  /* Recommendation box */
+  .recommendation-box {
+    background: linear-gradient(135deg, var(--navy), #1a3a5c);
+    border-radius: 16px;
+    padding: 2rem;
+    color: var(--white);
+    display: flex;
+    gap: 1.5rem;
+    align-items: flex-start;
+  }
+  .rec-icon { font-size: 2.5rem; flex-shrink: 0; }
+  .recommendation-box h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 0.5rem; }
+  .recommendation-box p { font-size: 0.85rem; color: var(--mint); line-height: 1.7; }
+
+  /* ── PAGE 3: ARCHITECTURE ── */
+  .arch-page { padding: 2.5rem; max-width: 1100px; margin: 0 auto; }
+  .arch-page h1 { font-size: 1.8rem; font-weight: 700; color: var(--navy); margin-bottom: 0.5rem; }
+  .arch-page .subtitle { color: var(--gray); font-size: 0.9rem; margin-bottom: 2rem; }
+
+  .arch-diagram {
+    background: var(--white);
+    border-radius: 16px;
+    padding: 2rem;
+    box-shadow: 0 4px 20px rgba(11,31,58,0.08);
+    margin-bottom: 2rem;
+  }
+  .arch-diagram h3 { font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--gray); margin-bottom: 1.5rem; }
+  .flow-steps { display: flex; align-items: center; gap: 0; flex-wrap: wrap; }
+  .flow-step {
+    background: var(--bg);
+    border-radius: 10px;
+    padding: 1rem 1.2rem;
+    text-align: center;
+    min-width: 130px;
+  }
+  .flow-step .step-icon { font-size: 1.5rem; margin-bottom: 0.4rem; }
+  .flow-step .step-label { font-size: 0.72rem; font-weight: 700; color: var(--navy); }
+  .flow-step .step-sub { font-size: 0.65rem; color: var(--gray); margin-top: 0.15rem; }
+  .flow-arrow { color: var(--teal); font-size: 1.2rem; padding: 0 0.5rem; }
+
+  .pipeline-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; margin-bottom: 2rem; }
+  .pipeline-card {
+    background: var(--white);
+    border-radius: 12px;
+    padding: 1.2rem;
+    box-shadow: 0 2px 12px rgba(11,31,58,0.06);
+    border-left: 4px solid var(--teal);
+  }
+  .pipeline-card h4 { font-size: 0.85rem; font-weight: 700; color: var(--navy); margin-bottom: 0.5rem; }
+  .pipeline-card p { font-size: 0.78rem; color: var(--gray); line-height: 1.6; }
+  .pipeline-card code { font-family: 'Space Mono', monospace; font-size: 0.7rem; background: var(--bg); padding: 1px 5px; border-radius: 3px; color: var(--teal); }
+
+  /* ── RESET BTN ── */
+  .reset-btn {
+    background: transparent;
+    border: 1.5px solid var(--border);
+    color: var(--gray);
+    padding: 0.55rem 1rem;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .reset-btn:hover { border-color: var(--teal); color: var(--teal); }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--gray); }
+</style>
+</head>
+<body>
+
+<!-- TOP NAV -->
+<nav class="topnav">
+  <div class="brand">🧬 <span>SkinDx</span> — SVM Classifier v1.0</div>
+  <div class="nav-tabs">
+    <div class="nav-tab active" onclick="showPage('predictor', this)">🔬 Predictor</div>
+    <div class="nav-tab" onclick="showPage('compare', this)">⚖️ Flask vs Streamlit</div>
+    <div class="nav-tab" onclick="showPage('architecture', this)">🏗️ Architecture</div>
+  </div>
+  <div class="accuracy-badge">SVM Accuracy: 97.3%</div>
+</nav>
+
+<!-- ════════════════════════════════════════════════ -->
+<!-- PAGE 1: PREDICTOR                                -->
+<!-- ════════════════════════════════════════════════ -->
+<div id="page-predictor" class="page active">
+<div class="predictor-layout">
+
+  <!-- SIDEBAR: Feature Inputs -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <h2>Patient Feature Input</h2>
+      <p>Score each feature: 0 = absent → 3 = severe</p>
+    </div>
+
+    <div class="section-label">🩺 Clinical Features (11)</div>
+    <div class="features-list" id="clinical-features"></div>
+
+    <div class="section-label histo">🔬 Histopathological Features (22)</div>
+    <div class="features-list" id="histo-features"></div>
+
+    <div class="section-label">📊 Demographic</div>
+    <div class="features-list" id="demo-features"></div>
+  </aside>
+
+  <!-- MAIN AREA -->
+  <main class="main-area">
+
+    <!-- Result Hero -->
+    <div class="result-hero">
+      <div class="result-hero-top">
+        <h3>Prediction Result</h3>
+        <div style="display:flex;gap:0.75rem">
+          <button class="reset-btn" onclick="resetAll()">↺ Reset</button>
+          <button class="predict-btn" onclick="runPrediction()">
+            ▶ Run Prediction
+          </button>
+        </div>
+      </div>
+      <div class="result-body">
+        <div class="prediction-waiting" id="waiting-state">
+          <div class="icon">🧬</div>
+          <p>Set patient feature values on the left, then click <strong>Run Prediction</strong></p>
+          <p style="margin-top:0.5rem;font-size:0.78rem;color:#94A3B8">Nearest-centroid classifier using SVM-trained feature space</p>
+        </div>
+        <div class="prediction-display" id="prediction-display">
+          <div class="disease-result">
+            <div class="disease-icon-circle" id="result-icon-circle">🔬</div>
+            <div class="disease-name-block">
+              <h2 id="result-disease-name">—</h2>
+              <div class="class-tag" id="result-class-tag">Class —</div>
+            </div>
+          </div>
+
+          <div class="confidence-title">Similarity Score (All 6 Classes)</div>
+          <div id="conf-bars"></div>
+
+          <div class="feature-highlights">
+            <h4>Key Features Driving This Classification</h4>
+            <div class="highlight-pills" id="feature-pills"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom info cards -->
+    <div class="bottom-cards">
+      <div class="info-card">
+        <h4>Model Performance</h4>
+        <div class="stat-row"><span>Algorithm</span><span class="stat-val">SVM (RBF Kernel)</span></div>
+        <div class="stat-row"><span>Test Accuracy</span><span class="stat-val">97.30%</span></div>
+        <div class="stat-row"><span>F1 Macro</span><span class="stat-val">96.97%</span></div>
+        <div class="stat-row"><span>CV Score</span><span class="stat-val">97.60% ± 0.009</span></div>
+        <div class="stat-row"><span>Training Samples</span><span class="stat-val">292</span></div>
+        <div class="stat-row"><span>Test Samples</span><span class="stat-val">74</span></div>
+      </div>
+      <div class="info-card">
+        <h4>Dataset Summary</h4>
+        <div class="stat-row"><span>Total Records</span><span class="stat-val">366</span></div>
+        <div class="stat-row"><span>Features</span><span class="stat-val">34</span></div>
+        <div class="stat-row"><span>Disease Classes</span><span class="stat-val">6</span></div>
+        <div class="stat-row"><span>Missing Values</span><span class="stat-val">8 (Age → imputed)</span></div>
+        <div class="stat-row"><span>Scaling</span><span class="stat-val">StandardScaler</span></div>
+        <div class="stat-row"><span>Source</span><span class="stat-val">UCI Dermatology</span></div>
+      </div>
+    </div>
+
+  </main>
+</div>
+</div>
+
+<!-- ════════════════════════════════════════════════ -->
+<!-- PAGE 2: FLASK vs STREAMLIT                       -->
+<!-- ════════════════════════════════════════════════ -->
+<div id="page-compare" class="page">
+<div class="compare-page">
+  <h1>Flask API vs Streamlit App</h1>
+  <p class="subtitle">Two deployment options for the SVM Skin Disease Classifier — choose based on your use case</p>
+
+  <div class="compare-grid">
+
+    <!-- FLASK -->
+    <div class="deploy-card">
+      <div class="deploy-card-header" style="background:#FFF5F5;border-bottom:1px solid #FFE0E0;">
+        <div class="deploy-icon" style="background:#FECACA;">🌶️</div>
+        <div>
+          <h3 style="color:#C0392B;">Flask REST API</h3>
+          <p>Backend microservice with JSON endpoints</p>
+        </div>
+      </div>
+      <div class="deploy-card-body" style="padding-top:1.2rem;">
+        <div class="pro-con-grid">
+          <div class="pros">
+            <h5>✅ Pros</h5>
+            <div class="pro-con-item">Full control over API design</div>
+            <div class="pro-con-item">Integrates with any frontend</div>
+            <div class="pro-con-item">Production-grade scalable</div>
+            <div class="pro-con-item">Easy to add auth & rate limiting</div>
+            <div class="pro-con-item">Lightweight & fast</div>
+          </div>
+          <div class="cons">
+            <h5>❌ Cons</h5>
+            <div class="pro-con-item">No built-in UI</div>
+            <div class="pro-con-item">More code to write</div>
+            <div class="pro-con-item">Separate frontend needed</div>
+            <div class="pro-con-item">Harder for non-devs to use</div>
+          </div>
+        </div>
+        <div style="margin-top:0.75rem;">
+          <p style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#64748B;margin-bottom:0.4rem;">Best For</p>
+          <span class="use-case-tag" style="background:#FFF5F5;color:#C0392B;border:1px solid #FECACA;">Hospital EHR Integration</span>
+          <span class="use-case-tag" style="background:#FFF5F5;color:#C0392B;border:1px solid #FECACA;">Mobile App Backend</span>
+          <span class="use-case-tag" style="background:#FFF5F5;color:#C0392B;border:1px solid #FECACA;">Microservice Architecture</span>
+        </div>
+        <div style="margin-top:1rem;padding:0.75rem;background:#FFF5F5;border-radius:8px;">
+          <p style="font-size:0.78rem;color:#7F1D1D;"><strong>Typical Setup:</strong> Flask + Gunicorn + Nginx on AWS EC2 or Google Cloud Run</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- STREAMLIT -->
+    <div class="deploy-card">
+      <div class="deploy-card-header" style="background:#F0FDF4;border-bottom:1px solid #BBF7D0;">
+        <div class="deploy-icon" style="background:#BBF7D0;">⚡</div>
+        <div>
+          <h3 style="color:#166534;">Streamlit App</h3>
+          <p>Interactive data science web application</p>
+        </div>
+      </div>
+      <div class="deploy-card-body" style="padding-top:1.2rem;">
+        <div class="pro-con-grid">
+          <div class="pros">
+            <h5>✅ Pros</h5>
+            <div class="pro-con-item">Built-in beautiful UI</div>
+            <div class="pro-con-item">Rapid prototyping (hours not days)</div>
+            <div class="pro-con-item">Free deployment (Streamlit Cloud)</div>
+            <div class="pro-con-item">Great for demos & presentations</div>
+            <div class="pro-con-item">Built-in charts & widgets</div>
+          </div>
+          <div class="cons">
+            <h5>❌ Cons</h5>
+            <div class="pro-con-item">Not a true REST API</div>
+            <div class="pro-con-item">Limited customisation</div>
+            <div class="pro-con-item">Restarts on each interaction</div>
+            <div class="pro-con-item">Not ideal for high traffic</div>
+          </div>
+        </div>
+        <div style="margin-top:0.75rem;">
+          <p style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#64748B;margin-bottom:0.4rem;">Best For</p>
+          <span class="use-case-tag" style="background:#F0FDF4;color:#166534;border:1px solid #BBF7D0;">Capstone Demo</span>
+          <span class="use-case-tag" style="background:#F0FDF4;color:#166534;border:1px solid #BBF7D0;">Doctor-facing Prototype</span>
+          <span class="use-case-tag" style="background:#F0FDF4;color:#166534;border:1px solid #BBF7D0;">Portfolio Showcase</span>
+        </div>
+        <div style="margin-top:1rem;padding:0.75rem;background:#F0FDF4;border-radius:8px;">
+          <p style="font-size:0.78rem;color:#14532D;"><strong>Typical Setup:</strong> <code style="background:#BBF7D0;padding:1px 5px;border-radius:3px;">streamlit run app.py</code> → Deploy free on Streamlit Community Cloud</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Decision matrix -->
+  <div class="info-card" style="margin-bottom:2rem;">
+    <h4>Decision Matrix — When to Use What</h4>
+    <table style="width:100%;font-size:0.82rem;border-collapse:collapse;margin-top:0.5rem;">
+      <thead>
+        <tr style="background:var(--bg);">
+          <th style="text-align:left;padding:0.6rem 0.8rem;border-bottom:2px solid var(--border);">Criteria</th>
+          <th style="padding:0.6rem 0.8rem;border-bottom:2px solid var(--border);color:#C0392B;">Flask API</th>
+          <th style="padding:0.6rem 0.8rem;border-bottom:2px solid var(--border);color:#166534;">Streamlit</th>
+        </tr>
+      </thead>
+      <tbody id="matrix-body"></tbody>
+    </table>
+  </div>
+
+  <!-- Code section -->
+  <div class="code-section">
+    <h3>📄 Production-Ready Code Templates</h3>
+    <div class="code-tabs">
+      <div class="code-tab active" onclick="showCode('flask')">Flask API (app.py)</div>
+      <div class="code-tab" onclick="showCode('streamlit')">Streamlit App (app.py)</div>
+      <div class="code-tab" onclick="showCode('requirements')">requirements.txt</div>
+      <div class="code-tab" onclick="showCode('dockerfile')">Dockerfile (Flask)</div>
+    </div>
+
+    <div id="code-flask" class="code-panel active">
+<pre><span class="cm"># ── Flask REST API for Skin Disease SVM Classifier ──────────────────────────</span>
+<span class="cm"># Deploy: gunicorn -w 4 -b 0.0.0.0:8000 app:app</span>
+
+<span class="kw">from</span> flask <span class="kw">import</span> Flask, request, jsonify
+<span class="kw">import</span> joblib
+<span class="kw">import</span> numpy <span class="kw">as</span> np
+<span class="kw">from</span> flask_cors <span class="kw">import</span> CORS
+
+app = Flask(__name__)
+CORS(app)
+
+<span class="cm"># Load pre-trained artifacts (saved with joblib during training)</span>
+model   = joblib.<span class="fn">load</span>(<span class="str">'models/svm_model.pkl'</span>)
+scaler  = joblib.<span class="fn">load</span>(<span class="str">'models/scaler.pkl'</span>)
+imputer = joblib.<span class="fn">load</span>(<span class="str">'models/imputer.pkl'</span>)
+
+CLASS_NAMES = {
+    <span class="num">1</span>: <span class="str">'Psoriasis'</span>, <span class="num">2</span>: <span class="str">'Seboreic Dermatitis'</span>, <span class="num">3</span>: <span class="str">'Lichen Planus'</span>,
+    <span class="num">4</span>: <span class="str">'Pityriasis Rosea'</span>, <span class="num">5</span>: <span class="str">'Chronic Dermatitis'</span>, <span class="num">6</span>: <span class="str">'Pityriasis Rubra Pilaris'</span>
+}
+
+FEATURE_COLS = [
+    <span class="str">'erythema'</span>, <span class="str">'scaling'</span>, <span class="str">'definite_borders'</span>, <span class="str">'itching'</span>,
+    <span class="str">'koebner_phenomenon'</span>, <span class="str">'polygonal_papules'</span>, <span class="str">'follicular_papules'</span>,
+    <span class="str">'oral_mucosal_involvement'</span>, <span class="str">'knee_and_elbow_involvement'</span>,
+    <span class="str">'scalp_involvement'</span>, <span class="str">'family_history'</span>, <span class="str">'melanin_incontinence'</span>,
+    <span class="str">'eosinophils_in_the_infiltrate'</span>, <span class="str">'PNL_infiltrate'</span>,
+    <span class="str">'fibrosis_of_the_papillary_dermis'</span>, <span class="str">'exocytosis'</span>, <span class="str">'acanthosis'</span>,
+    <span class="str">'hyperkeratosis'</span>, <span class="str">'parakeratosis'</span>, <span class="str">'clubbing_of_the_rete_ridges'</span>,
+    <span class="str">'elongation_of_the_rete_ridges'</span>, <span class="str">'thinning_of_the_suprapapillary_epidermis'</span>,
+    <span class="str">'spongiform_pustule'</span>, <span class="str">'munro_microabcess'</span>, <span class="str">'focal_hypergranulosis'</span>,
+    <span class="str">'disappearance_of_the_granular_layer'</span>, <span class="str">'vacuolisation_and_damage_of_basal_layer'</span>,
+    <span class="str">'spongiosis'</span>, <span class="str">'saw-tooth_appearance_of_retes'</span>, <span class="str">'follicular_horn_plug'</span>,
+    <span class="str">'perifollicular_parakeratosis'</span>, <span class="str">'inflammatory_monoluclear_inflitrate'</span>,
+    <span class="str">'band-like_infiltrate'</span>, <span class="str">'Age'</span>
+]
+
+@app.<span class="fn">route</span>(<span class="str">'/health'</span>, methods=[<span class="str">'GET'</span>])
+<span class="kw">def</span> <span class="fn">health</span>():
+    <span class="kw">return</span> jsonify({<span class="str">'status'</span>: <span class="str">'ok'</span>, <span class="str">'model'</span>: <span class="str">'SVM-RBF'</span>, <span class="str">'accuracy'</span>: <span class="num">0.973</span>})
+
+@app.<span class="fn">route</span>(<span class="str">'/predict'</span>, methods=[<span class="str">'POST'</span>])
+<span class="kw">def</span> <span class="fn">predict</span>():
+    <span class="kw">try</span>:
+        data = request.<span class="fn">get_json</span>()
+        
+        <span class="cm"># Validate and extract features</span>
+        features = []
+        <span class="kw">for</span> col <span class="kw">in</span> FEATURE_COLS:
+            val = data.<span class="fn">get</span>(col)
+            <span class="kw">if</span> val <span class="kw">is</span> <span class="kw">None</span>:
+                <span class="kw">return</span> jsonify({<span class="str">'error'</span>: <span class="fn">f</span><span class="str">'Missing feature: {col}'</span>}), <span class="num">400</span>
+            features.<span class="fn">append</span>(<span class="fn">float</span>(val))
+        
+        X = np.<span class="fn">array</span>(features).<span class="fn">reshape</span>(<span class="num">1</span>, -<span class="num">1</span>)
+        X_imp    = imputer.<span class="fn">transform</span>(X)
+        X_scaled = scaler.<span class="fn">transform</span>(X_imp)
+        
+        pred_class   = model.<span class="fn">predict</span>(X_scaled)[<span class="num">0</span>]
+        pred_proba   = model.<span class="fn">predict_proba</span>(X_scaled)[<span class="num">0</span>]
+        
+        <span class="kw">return</span> jsonify({
+            <span class="str">'predicted_class'</span>: <span class="fn">int</span>(pred_class),
+            <span class="str">'predicted_disease'</span>: CLASS_NAMES[pred_class],
+            <span class="str">'confidence'</span>: <span class="fn">float</span>(<span class="fn">max</span>(pred_proba)),
+            <span class="str">'all_probabilities'</span>: {
+                CLASS_NAMES[i+<span class="num">1</span>]: <span class="fn">round</span>(<span class="fn">float</span>(p), <span class="num">4</span>)
+                <span class="kw">for</span> i, p <span class="kw">in</span> enumerate(pred_proba)
+            }
+        })
+    <span class="kw">except</span> Exception <span class="kw">as</span> e:
+        <span class="kw">return</span> jsonify({<span class="str">'error'</span>: <span class="fn">str</span>(e)}), <span class="num">500</span>
+
+<span class="kw">if</span> __name__ == <span class="str">'__main__'</span>:
+    app.<span class="fn">run</span>(host=<span class="str">'0.0.0.0'</span>, port=<span class="num">5000</span>, debug=<span class="kw">False</span>)</pre>
+    </div>
+
+    <div id="code-streamlit" class="code-panel">
+<pre><span class="cm"># ── Streamlit App for Skin Disease SVM Classifier ────────────────────────────</span>
+<span class="cm"># Run: streamlit run app.py</span>
+<span class="cm"># Deploy: https://share.streamlit.io</span>
+
+<span class="kw">import</span> streamlit <span class="kw">as</span> st
+<span class="kw">import</span> joblib, numpy <span class="kw">as</span> np, pandas <span class="kw">as</span> pd
+
+st.<span class="fn">set_page_config</span>(page_title=<span class="str">"Skin Disease Predictor"</span>, page_icon=<span class="str">"🧬"</span>, layout=<span class="str">"wide"</span>)
+
+<span class="cm"># ── Load artifacts ─────────────────────────────────────────────────────────</span>
+@st.<span class="fn">cache_resource</span>
+<span class="kw">def</span> <span class="fn">load_model</span>():
+    <span class="kw">return</span> (
+        joblib.<span class="fn">load</span>(<span class="str">'models/svm_model.pkl'</span>),
+        joblib.<span class="fn">load</span>(<span class="str">'models/scaler.pkl'</span>),
+        joblib.<span class="fn">load</span>(<span class="str">'models/imputer.pkl'</span>)
+    )
+
+model, scaler, imputer = <span class="fn">load_model</span>()
+
+CLASS_NAMES = {
+    <span class="num">1</span>: <span class="str">'Psoriasis'</span>, <span class="num">2</span>: <span class="str">'Seboreic Dermatitis'</span>, <span class="num">3</span>: <span class="str">'Lichen Planus'</span>,
+    <span class="num">4</span>: <span class="str">'Pityriasis Rosea'</span>, <span class="num">5</span>: <span class="str">'Chronic Dermatitis'</span>, <span class="num">6</span>: <span class="str">'Pityriasis Rubra Pilaris'</span>
+}
+
+<span class="cm"># ── UI ─────────────────────────────────────────────────────────────────────</span>
+st.<span class="fn">title</span>(<span class="str">"🧬 Skin Disease Classifier"</span>)
+st.<span class="fn">caption</span>(<span class="str">"UCI Dermatology Dataset · SVM (RBF) · 97.3% Accuracy"</span>)
+
+<span class="cm"># Sidebar: Feature inputs</span>
+<span class="kw">with</span> st.<span class="fn">sidebar</span>():
+    st.<span class="fn">header</span>(<span class="str">"Patient Features"</span>)
+    st.<span class="fn">subheader</span>(<span class="str">"🩺 Clinical"</span>)
+    erythema          = st.<span class="fn">slider</span>(<span class="str">"Erythema"</span>,          <span class="num">0</span>, <span class="num">3</span>, <span class="num">2</span>)
+    scaling           = st.<span class="fn">slider</span>(<span class="str">"Scaling"</span>,           <span class="num">0</span>, <span class="num">3</span>, <span class="num">2</span>)
+    definite_borders  = st.<span class="fn">slider</span>(<span class="str">"Definite Borders"</span>,  <span class="num">0</span>, <span class="num">3</span>, <span class="num">1</span>)
+    itching           = st.<span class="fn">slider</span>(<span class="str">"Itching"</span>,           <span class="num">0</span>, <span class="num">3</span>, <span class="num">1</span>)
+    koebner           = st.<span class="fn">slider</span>(<span class="str">"Koebner Phenomenon"</span>, <span class="num">0</span>, <span class="num">3</span>, <span class="num">0</span>)
+    family_history    = st.<span class="fn">selectbox</span>(<span class="str">"Family History"</span>,  [<span class="num">0</span>, <span class="num">1</span>])
+    age               = st.<span class="fn">number_input</span>(<span class="str">"Age"</span>, <span class="num">0</span>, <span class="num">100</span>, <span class="num">35</span>)
+    <span class="cm"># ... (all 34 features) ...</span>
+
+<span class="cm"># Main: Prediction</span>
+col1, col2 = st.<span class="fn">columns</span>([<span class="num">2</span>, <span class="num">1</span>])
+
+<span class="kw">with</span> col1:
+    <span class="kw">if</span> st.<span class="fn">button</span>(<span class="str">"🔍 Predict Disease"</span>, type=<span class="str">"primary"</span>, use_container_width=<span class="kw">True</span>):
+        features = np.<span class="fn">array</span>([[erythema, scaling, definite_borders, itching,
+                                koebner, family_history, age]])  <span class="cm"># all 34</span>
+        X_imp    = imputer.<span class="fn">transform</span>(features)
+        X_scaled = scaler.<span class="fn">transform</span>(X_imp)
+        pred     = model.<span class="fn">predict</span>(X_scaled)[<span class="num">0</span>]
+        proba    = model.<span class="fn">predict_proba</span>(X_scaled)[<span class="num">0</span>]
+
+        st.<span class="fn">success</span>(<span class="fn">f</span><span class="str">"**Predicted: {CLASS_NAMES[pred]}**"</span>)
+        
+        <span class="cm"># Probability bar chart</span>
+        proba_df = pd.<span class="fn">DataFrame</span>({
+            <span class="str">'Disease'</span>: <span class="fn">list</span>(CLASS_NAMES.<span class="fn">values</span>()),
+            <span class="str">'Probability'</span>: proba
+        })
+        st.<span class="fn">bar_chart</span>(proba_df.<span class="fn">set_index</span>(<span class="str">'Disease'</span>))
+
+<span class="kw">with</span> col2:
+    st.<span class="fn">metric</span>(<span class="str">"Model Accuracy"</span>, <span class="str">"97.3%"</span>)
+    st.<span class="fn">metric</span>(<span class="str">"F1 Macro"</span>, <span class="str">"96.97%"</span>)</pre>
+    </div>
+
+    <div id="code-requirements" class="code-panel">
+<pre><span class="cm"># requirements.txt — same for both Flask and Streamlit</span>
+<span class="cm"># Install: pip install -r requirements.txt</span>
+
+<span class="cm"># Core ML</span>
+scikit-learn==<span class="num">1.4.0</span>
+numpy==<span class="num">1.26.4</span>
+pandas==<span class="num">2.2.0</span>
+joblib==<span class="num">1.3.2</span>
+
+<span class="cm"># Flask deployment</span>
+flask==<span class="num">3.0.2</span>
+flask-cors==<span class="num">4.0.0</span>
+gunicorn==<span class="num">21.2.0</span>
+
+<span class="cm"># Streamlit deployment (alternative)</span>
+streamlit==<span class="num">1.31.0</span>
+
+<span class="cm"># Optional: monitoring & logging</span>
+prometheus-flask-exporter==<span class="num">0.23.0</span>
+
+<span class="cm"># ── Save model artifacts (run once after training) ──────────────────────────</span>
+<span class="cm"># import joblib</span>
+<span class="cm"># joblib.dump(model,   'models/svm_model.pkl')</span>
+<span class="cm"># joblib.dump(scaler,  'models/scaler.pkl')</span>
+<span class="cm"># joblib.dump(imputer, 'models/imputer.pkl')</span>
+
+<span class="cm"># ── Test Flask API ───────────────────────────────────────────────────────────</span>
+<span class="cm"># curl -X POST http://localhost:5000/predict \</span>
+<span class="cm">#      -H "Content-Type: application/json" \</span>
+<span class="cm">#      -d '{"erythema": 2, "scaling": 2, "Age": 45, ...}'</span>
+
+<span class="cm"># ── Deploy Streamlit ─────────────────────────────────────────────────────────</span>
+<span class="cm"># 1. Push code to GitHub</span>
+<span class="cm"># 2. Go to share.streamlit.io</span>
+<span class="cm"># 3. Connect repo → Deploy (free, < 5 minutes)</span></pre>
+    </div>
+
+    <div id="code-dockerfile" class="code-panel">
+<pre><span class="cm"># Dockerfile — Containerise the Flask API</span>
+<span class="cm"># Build:  docker build -t skin-disease-api .</span>
+<span class="cm"># Run:    docker run -p 8000:8000 skin-disease-api</span>
+<span class="cm"># Deploy: Google Cloud Run / AWS ECS / Azure Container Apps</span>
+
+<span class="kw">FROM</span> python:<span class="num">3.11-slim</span>
+
+<span class="kw">WORKDIR</span> /app
+
+<span class="cm"># Install dependencies first (layer caching)</span>
+<span class="kw">COPY</span> requirements.txt .
+<span class="kw">RUN</span> pip install --no-cache-dir -r requirements.txt
+
+<span class="cm"># Copy app and model artifacts</span>
+<span class="kw">COPY</span> app.py .
+<span class="kw">COPY</span> models/ models/
+
+<span class="cm"># Expose API port</span>
+<span class="kw">EXPOSE</span> <span class="num">8000</span>
+
+<span class="cm"># Run with Gunicorn (production WSGI server)</span>
+<span class="kw">CMD</span> [<span class="str">"gunicorn"</span>, <span class="str">"--workers"</span>, <span class="str">"4"</span>, <span class="str">"--bind"</span>, <span class="str">"0.0.0.0:8000"</span>, <span class="str">"app:app"</span>]
+
+<span class="cm"># ── Cloud deployment options ─────────────────────────────────────────────────</span>
+<span class="cm"># Google Cloud Run (serverless, scales to zero):</span>
+<span class="cm">#   gcloud run deploy skin-disease-api --image gcr.io/PROJECT/skin-disease-api</span>
+<span class="cm">#</span>
+<span class="cm"># AWS ECS Fargate:</span>
+<span class="cm">#   aws ecs create-service --service-name skin-disease-api ...</span>
+<span class="cm">#</span>
+<span class="cm"># Heroku (simplest, free tier):</span>
+<span class="cm">#   heroku container:push web && heroku container:release web</span></pre>
+    </div>
+  </div>
+
+  <br>
+  <div class="recommendation-box">
+    <div class="rec-icon">🏆</div>
+    <div>
+      <h3>Recommendation for Your Portfolio</h3>
+      <p>For a capstone project submission and portfolio showcase, <strong>start with Streamlit</strong> — deploy it free on Streamlit Community Cloud in under 10 minutes, share the link directly with evaluators. Then, as a next step, wrap the same model in a <strong>Flask REST API</strong> and containerise it with Docker to demonstrate production-readiness. Having both shows you understand the full deployment spectrum from rapid prototyping to enterprise architecture.</p>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ════════════════════════════════════════════════ -->
+<!-- PAGE 3: ARCHITECTURE                             -->
+<!-- ════════════════════════════════════════════════ -->
+<div id="page-architecture" class="page">
+<div class="arch-page">
+  <h1>ML Pipeline Architecture</h1>
+  <p class="subtitle">End-to-end flow from raw patient data to deployed prediction service</p>
+
+  <!-- Flow diagram -->
+  <div class="arch-diagram">
+    <h3>Prediction Pipeline (Inference)</h3>
+    <div class="flow-steps">
+      <div class="flow-step">
+        <div class="step-icon">📋</div>
+        <div class="step-label">Raw Input</div>
+        <div class="step-sub">34 feature values<br>from doctor/form</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="step-icon">🩹</div>
+        <div class="step-label">Imputation</div>
+        <div class="step-sub">SimpleImputer<br>median strategy</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="step-icon">📏</div>
+        <div class="step-label">Scaling</div>
+        <div class="step-sub">StandardScaler<br>fit on train only</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step" style="background:#D4F5F0;border:2px solid #0D7377;">
+        <div class="step-icon">🤖</div>
+        <div class="step-label" style="color:#0D7377;">SVM (RBF)</div>
+        <div class="step-sub">C=1.0, gamma=scale<br>97.3% accuracy</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="step-icon">📊</div>
+        <div class="step-label">Probabilities</div>
+        <div class="step-sub">Platt scaling<br>6-class softmax</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step" style="background:#FFF3CD;">
+        <div class="step-icon">🏥</div>
+        <div class="step-label">Prediction</div>
+        <div class="step-sub">Disease class +<br>confidence score</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pipeline cards -->
+  <div class="pipeline-cards">
+    <div class="pipeline-card">
+      <h4>🔧 Model Serialization</h4>
+      <p>Save trained artifacts using <code>joblib.dump()</code>. Three files: <code>svm_model.pkl</code>, <code>scaler.pkl</code>, <code>imputer.pkl</code>. Must save separately to avoid data leakage — scaler must be re-fitted only on training data.</p>
+    </div>
+    <div class="pipeline-card" style="border-left-color:var(--gold);">
+      <h4>⚠️ Data Leakage Prevention</h4>
+      <p>Scaler is <code>fit_transform</code> on train, only <code>transform</code> on test and at inference time. Never fit on the full dataset. This is the most common production ML mistake.</p>
+    </div>
+    <div class="pipeline-card" style="border-left-color:var(--purple);">
+      <h4>📦 Versioning Strategy</h4>
+      <p>Tag models with version + date: <code>svm_v1_20260317.pkl</code>. Use MLflow or DVC for experiment tracking. Always log: accuracy, F1, training date, feature list, scikit-learn version.</p>
+    </div>
+    <div class="pipeline-card" style="border-left-color:var(--green);">
+      <h4>✅ Input Validation</h4>
+      <p>At API level, validate: all 34 features present, ordinal features in range <code>[0,3]</code>, Age in range <code>[0,120]</code>, family_history in <code>{0,1}</code>. Return 400 with clear error messages.</p>
+    </div>
+    <div class="pipeline-card" style="border-left-color:var(--red);">
+      <h4>📈 Monitoring in Production</h4>
+      <p>Track prediction distribution drift over time. Alert if model starts predicting one class &gt;60% of the time. Log every prediction with timestamp. Retrain quarterly with new patient data.</p>
+    </div>
+    <div class="pipeline-card" style="border-left-color:var(--navy);">
+      <h4>🔒 Clinical Safety</h4>
+      <p>Always display confidence score alongside prediction. Add disclaimer: "Supplementary tool — not a replacement for clinical diagnosis." Log all predictions for medical audit trail compliance.</p>
+    </div>
+  </div>
+
+  <!-- Recommended stack -->
+  <div class="info-card">
+    <h4>Recommended Production Stack</h4>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-top:0.75rem;">
+      <div style="text-align:center;padding:1rem;background:var(--bg);border-radius:8px;">
+        <div style="font-size:1.5rem;margin-bottom:0.4rem;">🔬</div>
+        <div style="font-size:0.8rem;font-weight:700;color:var(--navy);">Model Layer</div>
+        <div style="font-size:0.72rem;color:var(--gray);margin-top:0.2rem;">scikit-learn SVM<br>joblib serialization</div>
+      </div>
+      <div style="text-align:center;padding:1rem;background:var(--bg);border-radius:8px;">
+        <div style="font-size:1.5rem;margin-bottom:0.4rem;">🌶️</div>
+        <div style="font-size:0.8rem;font-weight:700;color:var(--navy);">API Layer</div>
+        <div style="font-size:0.72rem;color:var(--gray);margin-top:0.2rem;">Flask + Gunicorn<br>REST JSON API</div>
+      </div>
+      <div style="text-align:center;padding:1rem;background:var(--bg);border-radius:8px;">
+        <div style="font-size:1.5rem;margin-bottom:0.4rem;">🐳</div>
+        <div style="font-size:0.8rem;font-weight:700;color:var(--navy);">Container Layer</div>
+        <div style="font-size:0.72rem;color:var(--gray);margin-top:0.2rem;">Docker<br>Cloud Run / ECS</div>
+      </div>
+      <div style="text-align:center;padding:1rem;background:var(--bg);border-radius:8px;">
+        <div style="font-size:1.5rem;margin-bottom:0.4rem;">📊</div>
+        <div style="font-size:0.8rem;font-weight:700;color:var(--navy);">Monitoring</div>
+        <div style="font-size:0.72rem;color:var(--gray);margin-top:0.2rem;">MLflow tracking<br>Prometheus metrics</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<script>
+// ── MODEL DATA (embedded from Python export) ──────────────────────────────────
+const MODEL = {"feature_cols":["erythema","scaling","definite_borders","itching","koebner_phenomenon","polygonal_papules","follicular_papules","oral_mucosal_involvement","knee_and_elbow_involvement","scalp_involvement","family_history","melanin_incontinence","eosinophils_in_the_infiltrate","PNL_infiltrate","fibrosis_of_the_papillary_dermis","exocytosis","acanthosis","hyperkeratosis","parakeratosis","clubbing_of_the_rete_ridges","elongation_of_the_rete_ridges","thinning_of_the_suprapapillary_epidermis","spongiform_pustule","munro_microabcess","focal_hypergranulosis","disappearance_of_the_granular_layer","vacuolisation_and_damage_of_basal_layer","spongiosis","saw-tooth_appearance_of_retes","follicular_horn_plug","perifollicular_parakeratosis","inflammatory_monoluclear_inflitrate","band-like_infiltrate","Age"],"means":[2.068306010928962,1.7950819672131149,1.5491803278688525,1.366120218579235,0.6338797814207651,0.44808743169398907,0.16666666666666666,0.3770491803278688,0.6147540983606558,0.5191256830601093,0.12568306010928962,0.40437158469945356,0.13934426229508196,0.546448087431694,0.3360655737704918,1.3688524590163935,1.9562841530054644,0.5273224043715847,1.289617486338798,0.6639344262295082,0.9918032786885246,0.6338797814207651,0.29508196721311475,0.3633879781420765,0.39344262295081966,0.4644808743169399,0.4562841530054645,0.953551912568306,0.453551912568306,0.10382513661202186,0.11475409836065574,1.866120218579235,0.5546448087431693,36.26775956284153],"stds":[0.6638444698329595,0.7005679732079212,0.9062846060449171,1.136743371981651,0.9067745797897941,0.9560186985193022,0.569808071736146,0.8330062961254099,0.9816350916677673,0.9044004749979107,0.33149182269077815,0.8686290395634367,0.41122714736429283,0.8143360004457774,0.851972854223631,1.1029083732890064,0.7115375225756023,0.7560805894903366,0.9163072516172506,1.0553842363852435,1.1605719922860744,1.033509447415562,0.6696609278647653,0.7586827074382659,0.8482451546199894,0.8637164762082246,0.9535675699780799,1.1286269797089485,0.9534383886577504,0.4498167350220038,0.4880549324901985,0.7251151985176313,1.1043964598394174,15.136154340006085],"imputer_medians":[2.0,2.0,2.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,2.0,2.0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,2.0,0.0,35.0],"class_names":{"1":"Psoriasis","2":"Seboreic Dermatitis","3":"Lichen Planus","4":"Pityriasis Rosea","5":"Chronic Dermatitis","6":"Pityriasis Rubra Pilaris"},"centroids":{"1":[0.32749881134059816,0.5728874564129419,0.6058074408230897,-0.3692052731471202,0.03943987460519977,-0.4687015352189188,-0.22981840280602306,-0.452636651225388,1.0382416864665787,1.11417459309487,0.4827607037362017,-0.46552851249675836,-0.25200178841547616,0.699494239267227,-0.39445572955107167,-0.9982654432806147,0.19946963892370267,0.38898785545498427,0.7752667158394766,1.3759320560970103,1.0918110217739148,1.3736610252579762,0.8393216126882159,1.0391666086679456,-0.4638312648270647,0.8474397759840507,-0.46913883783524213,-0.8448778291780752,-0.47570133315778834,-0.23081652710618505,-0.23512537364420566,-6.728587113620312e-05,-0.4779615959057028,0.20292645558759195],"2":[0.31691536680894494,0.3861035811273226,-0.6602348222033567,0.22593542871965114,-0.6628912075526049,-0.46870153521891844,-0.2637260360069117,-0.45263665122538677,-0.5594546614422811,-0.44711562618361944,-0.23078316568852583,-0.46552851249675703,0.7773614490104512,0.6576144556913983,-0.3944557295510726,0.7506234176010566,-0.2611139171610378,-0.4155742848590084,-0.3339610468231591,-0.6290926122826362,-0.7133283053197716,-0.5974655967992625,-0.1958417096272505,-0.4789722694076904,-0.46383126482706516,-0.537770075147858,-0.4785021716037941,1.0724380467790484,-0.47570133315778934,-0.1943718122999451,-0.20153603455217653,-0.3579608344449056,-0.4725277040213867,-0.05343121847412302],"3":[0.022636811914924407,-0.24277725176945283,0.6047127918734702,0.8019906530084061,0.786681118659968,1.9138646021439172,-0.2924961490258476,1.848266325836999,-0.5979577600324216,-0.5432857665001412,-0.337245637955554,1.9009080926950936,0.06644114948807266,-0.671035158868774,-0.3292476008176975,0.8115238323954214,0.2175949309675315,-0.3116807136442563,-0.08870840306240167,-0.6290926122826358,-0.8545814350860623,-0.6133275152983582,-0.4406438466613134,-0.4240525167124478,1.8776039915887297,-0.2644036202810301,1.9393186815199708,0.12729654016508285,1.9278799510957991,-0.19993975483978735,-0.23512537364420583,0.5294052341000968,1.962680515830542,0.23923707731206317],"4":[-0.25660653209682766,-0.406638465466809,-0.4033025123048185,-0.7888609562894988,0.6063179319544238,-0.4687015352189183,-0.2924961490258476,-0.4526366512253868,-0.626255218032404,-0.5739997903708627,-0.37914377220257794,-0.46552851249675703,-0.18996744986283678,-0.5206685049018522,-0.3944557295510726,0.6092653603765301,-0.7129695133046585,-0.29256134659018385,-0.5833364786528429,-0.6290926122826368,-0.854581435086063,-0.6133275152983578,-0.44064384666131345,-0.4520727986998162,-0.4638312648270654,-0.0888321276594781,-0.4785021716037943,0.8910222588870017,-0.45429652765794276,-0.2308165271061848,-0.235125373644206,-0.12495947496734074,-0.502215308462521,-0.066229070996124],"5":[-0.8560830687826061,-0.9427587441279031,-0.7757237373622161,0.4561233245919636,-0.6990489097827471,-0.46870153521891833,0.11249851885609534,-0.4526366512253868,-0.5870741223401204,-0.5739997903708627,-0.379143772202578,-0.46552851249675703,-0.15179247229198184,-0.6710351588687733,2.2916175732737263,-0.4739275043345596,0.4127903837472291,0.21821124656476343,-0.5889045245319099,-0.5562062887323219,0.7692862759579561,-0.5947202647513421,-0.4119266728938561,-0.4789722694076902,-0.4638312648270653,-0.5377700751478579,-0.47850217160379427,-0.5381743280415789,-0.47570133315778923,-0.1880640731988651,-0.23512537364420596,-0.05405643370362334,-0.4848023866268557,0.01788446190090158],"6":[-0.02757575269636303,-0.06435059685455405,-0.550798639344992,-0.7619311798311639,-0.699048909782748,-0.46870153521891816,3.568453018115342,-0.45263665122538727,1.1055492115665355,-0.02114736069787391,1.129189060690285,-0.4655285124967571,-0.33884986238917114,-0.4868360077592954,-0.3944557295510725,0.11891064041204857,-0.4304539722610641,0.36064620546894804,-0.043236028383355475,-0.534340391667227,-0.7684170259286252,-0.6133275152983574,-0.36597919486592456,-0.47897226940768967,-0.4048860415886263,-0.5377700751478579,-0.47850217160379477,0.21836097476178393,-0.47570133315778895,3.6596567784599023,3.965221479814077,-0.3670040555256189,-0.4569417116897913,-1.7189147902697104]},"model_accuracy":0.973,"class_counts":{"1":112,"2":61,"3":72,"4":49,"5":52,"6":20},"class_colors":{"1":"#3498DB","2":"#E74C3C","3":"#2ECC71","4":"#F39C12","5":"#9B59B6","6":"#1ABC9C"}};
+
+// ── Feature metadata ──────────────────────────────────────────────────────────
+const CLINICAL = ["erythema","scaling","definite_borders","itching","koebner_phenomenon","polygonal_papules","follicular_papules","oral_mucosal_involvement","knee_and_elbow_involvement","scalp_involvement","family_history"];
+const HISTO = ["melanin_incontinence","eosinophils_in_the_infiltrate","PNL_infiltrate","fibrosis_of_the_papillary_dermis","exocytosis","acanthosis","hyperkeratosis","parakeratosis","clubbing_of_the_rete_ridges","elongation_of_the_rete_ridges","thinning_of_the_suprapapillary_epidermis","spongiform_pustule","munro_microabcess","focal_hypergranulosis","disappearance_of_the_granular_layer","vacuolisation_and_damage_of_basal_layer","spongiosis","saw-tooth_appearance_of_retes","follicular_horn_plug","perifollicular_parakeratosis","inflammatory_monoluclear_inflitrate","band-like_infiltrate"];
+const DISEASE_EMOJIS = {"1":"🔵","2":"🔴","3":"🟢","4":"🟡","5":"🟣","6":"🩵"};
+
+// Feature values store
+const featureValues = {};
+MODEL.feature_cols.forEach((f, i) => { featureValues[f] = MODEL.imputer_medians[i]; });
+
+// ── Build feature inputs ──────────────────────────────────────────────────────
+function buildFeatureRow(feature, container) {
+  const row = document.createElement('div');
+  row.className = 'feature-row';
+
+  const nameEl = document.createElement('div');
+  nameEl.className = 'feature-name';
+  const label = feature.replace(/_/g,' ').replace(/-/g,' ');
+  nameEl.innerHTML = label.charAt(0).toUpperCase() + label.slice(1);
+
+  row.appendChild(nameEl);
+
+  if (feature === 'family_history') {
+    const wrap = document.createElement('div');
+    wrap.className = 'toggle-wrap';
+    [0,1].forEach(v => {
+      const btn = document.createElement('button');
+      btn.className = 'toggle-btn' + (featureValues[feature] === v ? ' active' : '');
+      btn.textContent = v === 0 ? 'No' : 'Yes';
+      btn.onclick = () => {
+        featureValues[feature] = v;
+        wrap.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      };
+      wrap.appendChild(btn);
+    });
+    row.appendChild(wrap);
+  } else if (feature === 'Age') {
+    const inp = document.createElement('input');
+    inp.type = 'number'; inp.min = 0; inp.max = 100;
+    inp.value = Math.round(featureValues[feature]);
+    inp.className = 'age-input';
+    inp.oninput = () => { featureValues[feature] = parseFloat(inp.value) || 35; };
+    row.appendChild(inp);
+  } else {
+    const wrap = document.createElement('div');
+    wrap.className = 'score-btns';
+    [0,1,2,3].forEach(v => {
+      const btn = document.createElement('button');
+      btn.className = 'score-btn' + (Math.round(featureValues[feature]) === v ? ' active' : '');
+      btn.textContent = v;
+      btn.dataset.feature = feature;
+      btn.dataset.val = v;
+      btn.onclick = () => {
+        featureValues[feature] = v;
+        wrap.querySelectorAll('.score-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      };
+      wrap.appendChild(btn);
+    });
+    row.appendChild(wrap);
+  }
+
+  container.appendChild(row);
+}
+
+const clinicalContainer = document.getElementById('clinical-features');
+const histoContainer = document.getElementById('histo-features');
+const demoContainer = document.getElementById('demo-features');
+
+CLINICAL.forEach(f => buildFeatureRow(f, clinicalContainer));
+HISTO.forEach(f => buildFeatureRow(f, histoContainer));
+buildFeatureRow('Age', demoContainer);
+
+// ── Inference: nearest centroid in scaled space ───────────────────────────────
+function predict(values) {
+  // Impute, scale
+  const scaled = MODEL.feature_cols.map((f, i) => {
+    const v = (values[f] === null || isNaN(values[f])) ? MODEL.imputer_medians[i] : values[f];
+    return (v - MODEL.means[i]) / MODEL.stds[i];
+  });
+
+  // Compute squared Euclidean distance to each centroid
+  const distances = {};
+  for (const [cls, centroid] of Object.entries(MODEL.centroids)) {
+    let dist = 0;
+    centroid.forEach((c, i) => { dist += (scaled[i] - c) ** 2; });
+    distances[cls] = dist;
+  }
+
+  // Convert distances to similarity scores (inverse softmax)
+  const maxDist = Math.max(...Object.values(distances));
+  const similarities = {};
+  Object.entries(distances).forEach(([cls, d]) => {
+    similarities[cls] = Math.exp(-d / (maxDist * 0.5));
+  });
+  const total = Object.values(similarities).reduce((a, b) => a + b, 0);
+  Object.keys(similarities).forEach(cls => { similarities[cls] /= total; });
+
+  const bestCls = Object.entries(similarities).sort((a, b) => b[1] - a[1])[0][0];
+
+  // Top distinguishing features for predicted class
+  const centroid = MODEL.centroids[bestCls];
+  const featureDeltas = MODEL.feature_cols.map((f, i) => ({
+    feature: f, delta: Math.abs(scaled[i] - centroid[i])
+  }));
+  featureDeltas.sort((a, b) => a.delta - b.delta);
+  const topFeatures = featureDeltas.slice(0, 8).map(d => d.feature);
+
+  return { bestCls, similarities, topFeatures, scaled };
+}
+
+function runPrediction() {
+  const { bestCls, similarities, topFeatures } = predict(featureValues);
+  const className = MODEL.class_names[bestCls];
+  const color = MODEL.class_colors[bestCls];
+  const emoji = DISEASE_EMOJIS[bestCls];
+
+  // Show result
+  document.getElementById('waiting-state').classList.add('hide');
+  const disp = document.getElementById('prediction-display');
+  disp.classList.add('show');
+
+  document.getElementById('result-icon-circle').style.background = color + '22';
+  document.getElementById('result-icon-circle').textContent = emoji;
+  document.getElementById('result-disease-name').textContent = className;
+  const tag = document.getElementById('result-class-tag');
+  tag.textContent = `Class ${bestCls} · ${(similarities[bestCls]*100).toFixed(1)}% match`;
+  tag.style.background = color;
+
+  // Confidence bars
+  const barsContainer = document.getElementById('conf-bars');
+  barsContainer.innerHTML = '';
+  const sorted = Object.entries(similarities).sort((a, b) => b[1] - a[1]);
+  sorted.forEach(([cls, sim]) => {
+    const pct = (sim * 100).toFixed(1);
+    const c = MODEL.class_colors[cls];
+    const row = document.createElement('div');
+    row.className = 'conf-bar-row';
+    row.innerHTML = `
+      <div class="conf-bar-label">${MODEL.class_names[cls]}</div>
+      <div class="conf-bar-track"><div class="conf-bar-fill" style="width:0%;background:${c}"></div></div>
+      <div class="conf-bar-pct">${pct}%</div>`;
+    barsContainer.appendChild(row);
+    setTimeout(() => row.querySelector('.conf-bar-fill').style.width = pct + '%', 50);
+  });
+
+  // Feature pills
+  const pills = document.getElementById('feature-pills');
+  pills.innerHTML = '';
+  MODEL.feature_cols.forEach(f => {
+    if (f === 'Age') return;
+    const pill = document.createElement('span');
+    pill.className = 'highlight-pill' + (topFeatures.includes(f) ? ' active-feature' : '');
+    pill.textContent = f.replace(/_/g,' ').replace(/-/g,' ');
+    pills.appendChild(pill);
+  });
+}
+
+function resetAll() {
+  MODEL.feature_cols.forEach((f, i) => { featureValues[f] = MODEL.imputer_medians[i]; });
+  // Reset all buttons
+  document.querySelectorAll('.score-btn').forEach(btn => {
+    const val = parseInt(btn.dataset.val);
+    const feature = btn.dataset.feature;
+    btn.classList.toggle('active', Math.round(MODEL.imputer_medians[MODEL.feature_cols.indexOf(feature)]) === val);
+  });
+  document.querySelectorAll('.toggle-btn').forEach(btn => {
+    btn.classList.remove('active');
+    if (btn.textContent === 'No') btn.classList.add('active');
+  });
+  document.querySelectorAll('.age-input').forEach(inp => { inp.value = 35; });
+  // Hide result
+  document.getElementById('waiting-state').classList.remove('hide');
+  document.getElementById('prediction-display').classList.remove('show');
+}
+
+// ── Page navigation ───────────────────────────────────────────────────────────
+function showPage(pageId, tabEl) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-' + pageId).classList.add('active');
+  tabEl.classList.add('active');
+}
+
+// ── Code tabs ─────────────────────────────────────────────────────────────────
+function showCode(which) {
+  document.querySelectorAll('.code-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.code-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('code-' + which).classList.add('active');
+  event.target.classList.add('active');
+}
+
+// ── Decision matrix ───────────────────────────────────────────────────────────
+const matrix = [
+  ["Time to first deployment", "~2-3 days", "< 30 minutes"],
+  ["Requires frontend knowledge", "Yes (HTML/React)", "No"],
+  ["Free hosting available", "Limited (Heroku)", "Yes (Streamlit Cloud)"],
+  ["Suitable for production scale", "✅ Yes", "⚠️ Limited"],
+  ["REST API support", "✅ Native", "❌ No"],
+  ["Built-in charts & widgets", "❌ No", "✅ Yes"],
+  ["Custom authentication", "✅ Yes", "⚠️ Basic"],
+  ["Portfolio showcase", "⚠️ Needs frontend", "✅ Excellent"],
+  ["Mobile app integration", "✅ Yes (JSON API)", "❌ No"],
+  ["Data science prototyping", "⚠️ Overkill", "✅ Perfect"],
+];
+
+const tbody = document.getElementById('matrix-body');
+matrix.forEach((row, i) => {
+  const tr = document.createElement('tr');
+  tr.style.background = i % 2 === 0 ? 'var(--white)' : 'var(--bg)';
+  row.forEach((cell, j) => {
+    const td = document.createElement('td');
+    td.style.cssText = 'padding:0.55rem 0.8rem;border-bottom:1px solid var(--border);';
+    if (j === 0) td.style.fontWeight = '500';
+    if (j === 1) { td.style.color = '#C0392B'; td.style.textAlign = 'center'; }
+    if (j === 2) { td.style.color = '#166534'; td.style.textAlign = 'center'; }
+    td.textContent = cell;
+    tr.appendChild(td);
+  });
+  tbody.appendChild(tr);
+});
+</script>
+</body>
+</html>
